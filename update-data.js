@@ -54,17 +54,17 @@ async function getRouteData(company, mode) {
             }
         }
 
-        const data = getDataFromOneSheet(company, modeAndType);
+        const data = await getDataFromOneSheet(company, modeAndType);
 
         class Route {
-            constructor(id, type, num, name, destinationId) {
-                id = this.id;
-                type = this.type;
-                num = this.num;
-                name = this.name;
-                destinationId = this.destinationId;
-            }
             stops = [];
+            constructor(id, type, num, name, destinationId) {
+                this.id = id;
+                this.type = type;
+                this.num = num;
+                this.name = name;
+                this.destinationId = destinationId;
+            }
         }
 
         class RouteStop {
@@ -81,11 +81,10 @@ async function getRouteData(company, mode) {
 
         for (const row of data) {
             if (row[0] === 'ID' || !row[5]) {
-                return;
+                continue;
             }
-            let lastIndex = routes.length - 1;
 
-            for (const cell of row) {
+            for (let cell of row) {
                 if (cell === 'null') {
                     cell = null;
                 }
@@ -100,6 +99,8 @@ async function getRouteData(company, mode) {
             if (id) {
                 routes.push(new Route(id, type, num, name, destinationId));
             }
+
+            let lastIndex = routes.length - 1;
 
             let stopId = row[5];
             let meta1 = row[6];
@@ -133,17 +134,17 @@ async function getStopData(company, mode) {
             }
         }
 
-        const data = getDataFromOneSheet(company, modeAndType);
+        const data = await getDataFromOneSheet(company, modeAndType);
 
         class Stop {
-            constructor(id, code, city, stopName, keywords) {
-                id = this.id;
-                code = this.code;
-                city = this.city;
-                stopName = this.stopName;
-                keywords = this.keywords;
-            }
             connections = [];
+            constructor(id, code, city, stopName, keywords) {
+                this.id = id;
+                this.code = code;
+                this.city = city;
+                this.stopName = stopName;
+                this.keywords = keywords;
+            }
         }
 
         class Connection {
@@ -158,11 +159,10 @@ async function getStopData(company, mode) {
 
         for (const row of data) {
             if (row[0] === 'ID' || !row[4]) {
-                return;
+                continue;
             }
-            let lastIndex = stops.length - 1;
 
-            for (const cell of row) {
+            for (let cell of row) {
                 if (cell = 'null') {
                     cell = null;
                 }
@@ -177,6 +177,8 @@ async function getStopData(company, mode) {
             if (id) {
                 stops.push(new Stop(id, code, city, stopName, keywords));
             }
+
+            let lastIndex = stops.length - 1;
 
             let adjStopId = row[4];
             let route = row[5];
@@ -196,47 +198,63 @@ async function getStopData(company, mode) {
 }
 
 async function postToDatabase(data, company, collectionName) {
-    let dbName;
-    if (company === 'intra') {
-        dbName = 'intraRoute';
-    } else if (company === 'blu') {
-        dbName = 'bluTransit';
+    try {
+        let dbName;
+        if (company === 'intra') {
+            dbName = 'intraRoute';
+        } else if (company === 'blu') {
+            dbName = 'bluTransit';
+        }
+    
+        let collection = client.db(dbName).collection(collectionName);
+
+        console.log(data[3]);
+    
+        const dropResult = await collection.drop();
+        const insertResult = await collection.insertMany(data);
+
+        return insertResult;
+    } catch (error) {
+        console.error(error);
     }
-
-    let collection = client.db(dbName).collection(collectionName);
-
-    await collection.drop();
-    await collection.insertMany(data);
 }
 
 async function updateModeData(company, mode) {
-    if (company === 'intra') {
-        // rail, bus, air, sail, omega
-        const routes = await getRouteData(company, mode)
-        const stops = await getStopData(company, mode);
-
-        let routeCollectionName;
-        let stopCollectionName;
-
-        if (mode === 'rail') {
-            routeCollectionName = 'intraRailRoutes'
-            stopCollectionName = 'intraRailStops'
+    try {
+        if (company === 'intra') {
+            // rail, bus, air, sail, omega
+            const routes = await getRouteData(company, mode).then(console.log('ding 1!'));
+            const stops = await getStopData(company, mode).then(console.log('ding 2!'));
+    
+            let routeCollectionName;
+            let stopCollectionName;
+    
+            if (mode === 'rail') {
+                routeCollectionName = 'intraRailRoutes'
+                stopCollectionName = 'intraRailStops'
+            }
+    
+            await postToDatabase(routes, company, routeCollectionName)
+            .then(console.log(`Updated ${routeCollectionName} data.`)).then();
+    
+            await postToDatabase(stops, company, stopCollectionName)
+            .then(console.log(`Updated ${stopCollectionName} data.`));
         }
-
-        await postToDatabase(routes, company, routeCollectionName);
-        console.log(`Updated ${routeCollectionName} data.`);
-
-        await postToDatabase(stops, company, routeCollectionName);
-        console.log(`Updated ${stopCollectionName} data.`);
+    } catch (error) {
+        console.error(error);
     }
 }
 
 module.exports = async function updateData(company) {
-    await connectToMongo();
-    if (company === 'intra') {
-        await updateModeData('intra', 'rail');
-        // add more modes later
-    } else if (company === 'blu') {
-        // add modes later
+    try {
+        await connectToMongo();
+        if (company === 'intra') {
+            await updateModeData('intra', 'rail');
+            // add more modes later
+        } else if (company === 'blu') {
+            // add modes later
+        }
+    } catch (error) {
+        console.error(error);
     }
 }
