@@ -147,6 +147,12 @@ async function updateStopData(company) {
                 }
             }
         }
+
+        for (let stop of stops) {
+            // combine connections together
+            // if cost is same, combine with two routes
+            // if cost is less, replace
+        }
     } catch (error) {
         console.error(error);
         return null;
