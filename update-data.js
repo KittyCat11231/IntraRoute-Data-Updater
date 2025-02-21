@@ -148,6 +148,7 @@ async function getStopData(company, mode) {
         const data = await getDataFromOneSheet(company, modeAndType);
 
         class Stop {
+            routes = [];
             connections = [];
             constructor(id, code, city, stopName, keywords) {
                 this.id = id;

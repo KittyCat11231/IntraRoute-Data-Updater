@@ -109,8 +109,14 @@ async function updateStopData(company) {
         }
 
         for (let route of routes) {
+            let stopIds = [];
             for (let stop of route.stops) {
-                // where i left off
+                stopIds.push(stop.id);
+            }
+
+            for (let id of stopIds) {
+                let stop = stopsMap.get(id);
+                stop.routes.push(route.id);
             }
         }
     }
