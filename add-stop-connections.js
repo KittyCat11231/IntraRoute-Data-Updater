@@ -88,7 +88,7 @@ async function updateStopData(company) {
 
             stops = stops.concat(railStops);
 
-            let railRoutes = await getStopData(company, 'rail');
+            let railRoutes = await getRouteData(company, 'rail');
             // add all modes
 
             routes = routes.concat(railRoutes);
@@ -117,7 +117,7 @@ async function updateStopData(company) {
         for (let route of routes) {
             let stopIds = [];
             for (let stop of route.stops) {
-                stop.routes.push(stop.id);
+                stopIds.push(stop.id);
             }
 
             for (let id of stopIds) {
@@ -159,8 +159,11 @@ async function updateStopData(company) {
     }
 }
 
-async function master() {
-    console.log(await getCollectionData('intra', 'intraRailRoutes'));
+module.exports = async function addStopConnections(company) {
+    try {
+        await connectToMongo();
+        await updateStopData(company);
+    } catch (error) {
+        console.error(error);
+    }
 }
-
-master();
