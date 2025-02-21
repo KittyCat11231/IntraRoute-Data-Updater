@@ -100,10 +100,16 @@ async function updateStopData(company) {
             stopsMap.set(stop.id, stop);
         }
 
+        let routesMap = new Map();
+
+        for (let route of routes) {
+            routesMap.set(route.id, route);
+        }
+
         class Connection {
-            constructor(id, routes, cost) {
+            routes = [];
+            constructor(id, cost) {
                 this.id = id;
-                this.routes = routes;
                 this.cost = cost;
             }
         }
@@ -111,12 +117,34 @@ async function updateStopData(company) {
         for (let route of routes) {
             let stopIds = [];
             for (let stop of route.stops) {
-                stopIds.push(stop.id);
+                stop.routes.push(stop.id);
             }
 
             for (let id of stopIds) {
                 let stop = stopsMap.get(id);
                 stop.routes.push(route.id);
+            }
+        }
+
+        for (let stop of stops) {
+            for (let routeId of stops.routes) {
+                let route = routesMap.get(routeId);
+
+                let index = route.stops.findIndex(element => element.id === stop.id);
+
+                if (index < route.stops.length - 1) {
+                    continue;
+                }
+
+                let stopsAway = 1;
+
+                for (let i = index + 1; i < route.stops.length; i++) {
+                    let stopId = routes.stops[i].id;
+                    
+                    stop.connections.push(new Connection(stopId, stopsAway));
+
+                    stopsAway++;
+                }
             }
         }
     } catch (error) {
