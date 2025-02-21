@@ -119,6 +119,9 @@ async function updateStopData(company) {
                 stop.routes.push(route.id);
             }
         }
+    } catch (error) {
+        console.error(error);
+        return null;
     }
 }
 
