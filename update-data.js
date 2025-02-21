@@ -84,17 +84,18 @@ async function getRouteData(company, mode) {
                 continue;
             }
 
-            for (let cell of row) {
-                if (cell === 'null') {
-                    cell = null;
-                }
-            }
-
             let id = row[0];
             let type = row[1];
             let num = row[2];
             let name = row[3];
             let destinationId = row[4];
+
+            if (num === 'null') {
+                num = null;
+            }
+            if (name === 'null') {
+                name = null;
+            }
 
             if (id) {
                 routes.push(new Route(id, type, num, name, destinationId));
@@ -112,6 +113,16 @@ async function getRouteData(company, mode) {
                 displayFullDestName = false;
             }
             let skipTo = row[9];
+
+            if (meta1 === 'null') {
+                meta1 = null;
+            }
+            if (meta2 === 'null') {
+                meta2 = null;
+            }
+            if (skipTo === 'null') {
+                skipTo = null; 
+            }
 
             routes[lastIndex].stops.push(new RouteStop(stopId, meta1, meta2, displayFullDestName, skipTo));
         }
@@ -148,9 +159,9 @@ async function getStopData(company, mode) {
         }
 
         class Connection {
-            constructor(id, route, cost) {
+            constructor(id, routes, cost) {
                 this.id = id;
-                this.route = route;
+                this.routes = routes;
                 this.cost = cost;
             }
         }
@@ -174,6 +185,10 @@ async function getStopData(company, mode) {
             let stopName = row[3];
             let keywords = row[7];
 
+            if (stopName === 'null') {
+                stopName = null;
+            }
+
             if (id) {
                 stops.push(new Stop(id, code, city, stopName, keywords));
             }
@@ -181,11 +196,11 @@ async function getStopData(company, mode) {
             let lastIndex = stops.length - 1;
 
             let adjStopId = row[4];
-            let route = row[5];
+            let routes = [row[5]];
             let cost = row[6];
 
             if (adjStopId) {
-                stops[lastIndex].connections.push(new Connection(adjStopId, route, cost));
+                stops[lastIndex].connections.push(new Connection(adjStopId, routes, cost));
             }
         }
 
@@ -207,8 +222,6 @@ async function postToDatabase(data, company, collectionName) {
         }
     
         let collection = client.db(dbName).collection(collectionName);
-
-        console.log(data[3]);
     
         const dropResult = await collection.drop();
         const insertResult = await collection.insertMany(data);
@@ -245,7 +258,7 @@ async function updateModeData(company, mode) {
     }
 }
 
-module.exports = async function updateData(company) {
+async function updateData(company) {
     try {
         await connectToMongo();
         if (company === 'intra') {
@@ -258,3 +271,5 @@ module.exports = async function updateData(company) {
         console.error(error);
     }
 }
+
+module.exports = { updateData, postToDatabase }
