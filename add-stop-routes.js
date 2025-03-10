@@ -4,6 +4,8 @@ const { MongoClient } = require('mongodb');
 const uri = require('./atlas_uri');
 const client = new MongoClient(uri);
 
+const { helpers } = require('@kyle11231/helper-functions');
+
 const { google } = require('googleapis');
 
 const { spreadsheets } = require('./spreadsheet-ids.json');
@@ -77,93 +79,89 @@ async function getStopData(company, mode) {
     }
 }
 
-async function updateStopData(company) {
+async function getAllCompanyRoutes(company) {
     try {
         let routes = [];
-        let stops = [];
-
         if (company === 'intra') {
-            let railStops = await getStopData(company, 'rail');
-            // add all modes
-
-            stops = stops.concat(railStops);
-
-            let railRoutes = await getRouteData(company, 'rail');
-            // add all modes
-
-            routes = routes.concat(railRoutes);
+            routes = routes.concat(await getRouteData('intra', 'rail'));
+            // other modes
         }
-
-        let stopsMap = new Map();
-
-        for (let stop of stops) {
-            stopsMap.set(stop.id, stop);
-        }
-
-        let routesMap = new Map();
-
-        for (let route of routes) {
-            routesMap.set(route.id, route);
-        }
-
-        class Connection {
-            routes = [];
-            constructor(id, cost) {
-                this.id = id;
-                this.cost = cost;
-            }
-        }
-
-        for (let route of routes) {
-            let stopIds = [];
-            for (let stop of route.stops) {
-                stopIds.push(stop.id);
-            }
-
-            for (let id of stopIds) {
-                let stop = stopsMap.get(id);
-                stop.routes.push(route.id);
-            }
-        }
-
-        for (let stop of stops) {
-            for (let routeId of stops.routes) {
-                let route = routesMap.get(routeId);
-
-                let index = route.stops.findIndex(element => element.id === stop.id);
-
-                if (index < route.stops.length - 1) {
-                    continue;
-                }
-
-                let stopsAway = 1;
-
-                for (let i = index + 1; i < route.stops.length; i++) {
-                    let stopId = routes.stops[i].id;
-                    
-                    stop.connections.push(new Connection(stopId, stopsAway));
-
-                    stopsAway++;
-                }
-            }
-        }
-
-        for (let stop of stops) {
-            // combine connections together
-            // if cost is same, combine with two routes
-            // if cost is less, replace
-        }
+        return routes;
     } catch (error) {
         console.error(error);
         return null;
     }
 }
 
-module.exports = async function addStopConnections(company) {
+async function getMap(array) {
     try {
-        await connectToMongo();
-        await updateStopData(company);
+        let map = new Map();
+        for (let item of array) {
+            map.set(item.id, item);
+        }
+        return map;
     } catch (error) {
         console.error(error);
+        return null;
     }
 }
+
+class Route {
+    constructor(id, meta1, meta2) {
+        this.id = id;
+        this.meta1 = meta1;
+        this.meta2 = meta2;
+    }
+}
+
+async function addRoutesForModeStops(company, mode) {
+    try {
+        let routes = await getAllCompanyRoutes(company);
+        let stops = await getStopData(company, mode);
+
+        let stopsMap = await getMap(stops);
+
+        for (let route of routes) {
+            for (let stop of route.stops) {
+                let stopObj = stopsMap.get(stop.id);
+
+                let id = route.id;
+                let meta1 = route.meta1;
+                let meta2 = route.meta2;
+
+                stopObj.routes = stopObj.routes.concat(new Route(id, meta1, meta2));
+            }
+        }
+
+        let collectionName;
+
+        if (company === 'intra') {
+            if (mode === 'rail') {
+                collectionName = 'intraRailStops';
+            }
+        }
+
+        await postToDatabase(stops, company, collectionName);
+        console.log(`Updated ${collectionName} data.`)
+
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
+}
+
+async function addRoutes(company) {
+    try {
+        await connectToMongo();
+
+        if (company === 'intra') {
+            await addRoutesForModeStops(company, 'rail');
+            // add other modes
+        }
+    } catch (error) {
+        console.error(error);
+        null;
+    }
+}
+
+module.exports = { addRoutes };

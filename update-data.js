@@ -4,6 +4,8 @@ const { MongoClient } = require('mongodb');
 const uri = require('./atlas_uri');
 const client = new MongoClient(uri);
 
+const { helpers } = require('@kyle11231/helper-functions');
+
 const { google } = require('googleapis');
 
 const { spreadsheets } = require('./spreadsheet-ids.json');
@@ -84,18 +86,11 @@ async function getRouteData(company, mode) {
                 continue;
             }
 
-            let id = row[0];
-            let type = row[1];
-            let num = row[2];
-            let name = row[3];
-            let destinationId = row[4];
-
-            if (num === 'null') {
-                num = null;
-            }
-            if (name === 'null') {
-                name = null;
-            }
+            let id = helpers.nullify(row[0]);
+            let type = helpers.nullify(row[1]);
+            let num = helpers.nullify(row[2]);
+            let name = helpers.nullify(row[3]);
+            let destinationId = helpers.nullify(row[4]);
 
             if (id) {
                 routes.push(new Route(id, type, num, name, destinationId));
@@ -103,26 +98,16 @@ async function getRouteData(company, mode) {
 
             let lastIndex = routes.length - 1;
 
-            let stopId = row[5];
-            let meta1 = row[6];
-            let meta2 = row[7];
+            let stopId = helpers.nullify(row[5]);
+            let meta1 = helpers.nullify(row[6]);
+            let meta2 = helpers.nullify(row[7]);
             let displayFullDestName;
             if (row[8] === 'yes') {
                 displayFullDestName = true;
             } else {
                 displayFullDestName = false;
             }
-            let skipTo = row[9];
-
-            if (meta1 === 'null') {
-                meta1 = null;
-            }
-            if (meta2 === 'null') {
-                meta2 = null;
-            }
-            if (skipTo === 'null') {
-                skipTo = null; 
-            }
+            let skipTo = helpers.nullify(row[9]);
 
             routes[lastIndex].stops.push(new RouteStop(stopId, meta1, meta2, displayFullDestName, skipTo));
         }
@@ -174,21 +159,11 @@ async function getStopData(company, mode) {
                 continue;
             }
 
-            for (let cell of row) {
-                if (cell = 'null') {
-                    cell = null;
-                }
-            }
-
-            let id = row[0];
-            let code = row[1];
-            let city = row[2];
-            let stopName = row[3];
-            let keywords = row[7];
-
-            if (stopName === 'null') {
-                stopName = null;
-            }
+            let id = helpers.nullify(row[0]);
+            let code = helpers.nullify(row[1]);
+            let city = helpers.nullify(row[2]);
+            let stopName = helpers.nullify(row[3]);
+            let keywords = helpers.nullify(row[7]);
 
             if (id) {
                 stops.push(new Stop(id, code, city, stopName, keywords));
@@ -196,9 +171,9 @@ async function getStopData(company, mode) {
 
             let lastIndex = stops.length - 1;
 
-            let adjStopId = row[4];
-            let routes = [row[5]];
-            let cost = row[6];
+            let adjStopId = helpers.nullify(row[4]);
+            let routes = [helpers.nullify(row[5])];
+            let cost = helpers.nullify(row[6]);
 
             if (adjStopId) {
                 stops[lastIndex].connections.push(new Connection(adjStopId, routes, cost));

@@ -1,3 +1,9 @@
-const updateData = require('./update-data');
+const { updateData } = require('./update-data');
+const { addRoutes } = require('./add-stop-routes');
 
-updateData('intra');
+async function master() {
+    await updateData('intra');
+    await addRoutes('intra');
+}
+
+master();
