@@ -126,8 +126,8 @@ async function addRoutesForModeStops(company, mode) {
                 let stopObj = stopsMap.get(stop.id);
 
                 let id = route.id;
-                let meta1 = route.meta1;
-                let meta2 = route.meta2;
+                let meta1 = stop.meta1;
+                let meta2 = stop.meta2;
 
                 stopObj.routes = stopObj.routes.concat(new Route(id, meta1, meta2));
             }
@@ -160,8 +160,8 @@ async function addRoutes(company) {
         }
     } catch (error) {
         console.error(error);
-        null;
+        return null;
     }
 }
 
-module.exports = { addRoutes };
+module.exports = { addRoutes, getCollectionData, getRouteData, getStopData, getMap, getAllCompanyRoutes };
